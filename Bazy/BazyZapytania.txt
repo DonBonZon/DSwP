@@ -1,0 +1,68 @@
+1)Z tabeli employees wypisz w jednej kolumnie nazwisko i zarobki – nazwij kolumnę wynagrodzenie, dla osób z departamentów 20 i 50 z zarobkami pomiędzy 2000 a 7000, uporządkuj kolumny według nazwiska
+
+SELECT CONCAT(CONCAT(last_name,' '),salary) AS wynagrodzenie FROM employees WHERE department_id IN (20,50) AND salary BETWEEN 2000 AND 7000 ORDER BY last_name
+
+2)Z tabeli employees wyciągnąć informację data zatrudnienia, nazwisko oraz kolumnę podaną przez użytkownika dla osób mających menadżera zatrudnionych w roku 2005. Uporządkować według kolumny podanej przez użytkownika
+
+SELECT hire_date,last_name,&param AS user_specified_column FROM employees WHERE manager_id IS NOT NULL AND EXTRACT(YEAR FROM hire_date) = 2005
+
+3)Wypisać imiona i nazwiska  razem, zarobki oraz numer telefonu porządkując dane według pierwszej kolumny malejąco  a następnie drugiej rosnąco (użyć numerów do porządkowania) dla osób z trzecią literą nazwiska ‘e’ oraz częścią imienia podaną przez użytkownika
+
+SELECT CONCAT(CONCAT(last_name,' '),first_name) AS name, phone_number, salary FROM employees WHERE SUBSTR(last_name, 3 , 1) = 'e' AND first_name like '%&param%' ORDER BY name DESC, phone_number ASC
+
+4)Wypisać imię i nazwisko, liczbę miesięcy przepracowanych – funkcje months_between oraz round oraz kolumnę wysokość_dodatku jako (użyć CASE lub DECODE):
+10% wynagrodzenia dla liczby miesięcy do 150
+20% wynagrodzenia dla liczby miesięcy od 150 do 200
+30% wynagrodzenia dla liczby miesięcy od 200
+uporządkować według liczby miesięcy
+
+SELECT first_name, last_name, round(months_between(sysdate, hire_date)) AS time_working ,CASE WHEN round(months_between(sysdate, hire_date)) <= 150 THEN '10%' WHEN round(months_between(sysdate, hire_date)) BETWEEN 150 AND 200 THEN '20%' ELSE '30%' END as wysokosc_dodatku from employees ORDER BY time_working 
+
+5)Dla każdego działów w których minimalna płaca jest wyższa niż 5000 wypisz sumę oraz średnią zarobków zaokrągloną do całości nazwij odpowiednio kolumny   
+
+SELECT d.department_name, round(SUM(e.salary)) AS sum, round(AVG(e.salary))AS avg FROM departments d INNER JOIN employees e ON d.department_id = e.department_id INNER JOIN jobs j ON j.job_id = e.job_id WHERE j.min_salary > 5000 GROUP BY d.department_name
+
+6)Wypisać nazwisko, numer departamentu, nazwę departamentu, id pracy, dla osób z pracujących Toronto
+
+SELECT e.last_name, d.department_id, d.department_name, e.job_id FROM employees e INNER JOIN departments d ON d.department_id = e.department_id INNER JOIN locations l ON l.location_id = d.location_id WHERE l.city = 'Toronto'
+
+7)Dla pracowników o imieniu „Jennifer” wypisz imię i nazwisko tego pracownika oraz osoby które z nim współpracują
+
+SELECT
+    CONCAT(CONCAT(e.first_name, ' '),e.last_name) AS employee,
+    coworkers
+FROM (
+        SELECT e.employee_id,  LISTAGG(coworkers.first_name  || ' ' || coworkers.last_name, '; ') WITHIN GROUP
+            (ORDER BY
+                coworkers.last_name
+            ) coworkers
+        FROM employees e
+            JOIN employees manager ON manager.employee_id = e.manager_id
+            JOIN employees coworkers ON coworkers.manager_id = manager.employee_id
+        WHERE
+                e.first_name = 'Jennifer'
+            AND coworkers.employee_id NOT IN e.employee_id
+        GROUP BY
+            e.employee_id
+    ) q
+    JOIN employees e ON e.employee_id = q.employee_id
+
+8)Wypisać wszystkie departamenty w których nie ma pracowników
+
+SELECT departments.department_name FROM departments WHERE NOT EXISTS (SELECT * FROM employees WHERE departments.department_id = employees.department_id)
+
+9)Skopiuj tabelę Job_grades od użytkownika HR
+
+create table job_grades as select * from hr.job_grades
+
+10)Wypisz imię i nazwisko, id pracy, nazwę departamentu, zarobki, oraz odpowiedni grade dla każdego pracownika
+
+SELECT CONCAT(CONCAT(e.first_name, ' '), e.last_name) AS name, e.job_id, d.department_name, e.salary, jg.grade FROM employees e JOIN departments d ON d.department_id = e.department_id LEFT JOIN job_grades  jg ON e.salary BETWEEN jg.min_salary AND jg.max_salary WHERE GRADE IS NOT NULL
+
+11)Wypisz imię nazwisko oraz zarobki dla osób które zarabiają więcej niż średnia wszystkich, uporządkuj malejąco według zarobków
+
+SELECT employee_id, last_name, salary FROM employees WHERE salary > (SELECT AVG(salary) FROM employees) ORDER BY SALARY DESC
+
+12)Wypisz id imie i nazwisko osób, które pracują w departamencie z osobami mającymi w nazwisku „u”
+
+SELECT employee_id,first_name, last_name FROM employees WHERE department_id IN (SELECT department_id FROM employees WHERE last_name like '%u%');
