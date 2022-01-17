@@ -1,0 +1,245 @@
+-- 1
+DECLARE
+        NUMBER_MAX  departments.department_id%TYPE;
+BEGIN
+        SELECT MAX (department_id) + 10 INTO NUMBER_MAX FROM departments;
+        INSERT INTO departments (department_id, department_name)
+        VALUES (NUMBER_MAX, 'EDUCATION');
+END;
+/
+
+SELECT * FROM departments;
+
+-- 2
+BEGIN
+    UPDATE departments
+    SET location_id=3000 WHERE
+    department_id=280;
+END;
+/
+
+-- 3
+BEGIN
+FOR i IN 1..10 LOOP
+    IF i = 4 OR i = 6 THEN
+        null;
+    ELSE
+        INSERT INTO NUMBERs(NUMBERs)
+        VALUES (i);
+    END IF;
+END LOOP;
+COMMIT;
+END;
+/
+
+SELECT * FROM NUMBERs;
+
+-- 4
+DECLARE
+  l_country_record   countries%ROWTYPE;
+  l_country_id    VARCHAR2(20)        := 'CA';
+BEGIN
+  SELECT *
+  INTO l_country_record
+  FROM countries
+  WHERE country_id = UPPER(l_country_id);
+
+  DBMS_OUTPUT.PUT_LINE(
+    ' Country Name: ' || l_country_record.country_name ||
+    ' Region: ' || l_country_record.region_id
+  );
+END;
+/
+
+-- 5
+DECLARE
+    TYPE dept_table_TYPE
+      IS TABLE OF departments.department_name%TYPE
+        INDEX BY PLS_INTEGER;
+    my_dept_table  dept_table_TYPE;
+    LOOP_count     NUMBER(2) := 10;
+    deptno         NUMBER(4) := 0;
+BEGIN
+    FOR i IN 1..LOOP_count
+    LOOP
+        deptno := 10 + deptno;
+        SELECT department_name
+        INTO my_dept_table(i)
+        FROM departments
+        WHERE department_id = deptno;
+    END LOOP;
+
+    FOR j IN 1..LOOP_count
+    LOOP
+        DBMS_OUTPUT.PUT_LINE(my_dept_table(j));
+    END LOOP;
+END;
+
+-- 6
+DECLARE
+    TYPE dept_table_TYPE
+      IS TABLE OF departments%ROWTYPE
+        INDEX BY PLS_INTEGER;
+    my_dept_table  dept_table_TYPE;
+    LOOP_count     NUMBER(2) := 10;
+    deptno         NUMBER(4) := 0;
+BEGIN
+    FOR i IN 1..LOOP_count
+    LOOP
+        deptno := 10 + deptno;
+        SELECT * INTO my_dept_table(i)
+        FROM departments
+        WHERE department_id = deptno;
+    END LOOP;
+
+    FOR j IN 1..LOOP_count
+    LOOP
+        DBMS_OUTPUT.PUT_LINE(
+        'Department ID: ' || my_dept_table(j).department_id || ';' ||
+        ' Department Name: ' || my_dept_table(j).department_name || ';' ||
+        ' Manager Id: ' || my_dept_table(j).manager_id || ';' ||
+        ' Location Id: ' || my_dept_table(j).location_id
+      );
+    END LOOP;
+END;
+
+-- 7
+DECLARE
+  CURSOR c_emp_cursor
+  IS
+    SELECT salary, last_name
+    FROM employees
+    WHERE department_id = 50;
+
+BEGIN
+    FOR emp_record IN c_emp_cursor
+
+    LOOP
+        IF (emp_record.salary>3100) THEN
+            DBMS_OUTPUT.PUT_LINE(emp_record.last_name || ' -> stay');
+        ELSE
+            DBMS_OUTPUT.PUT_LINE(emp_record.last_name || ' -> raise');
+        END IF;
+    END LOOP;
+END;
+
+-- 8
+-- a
+DECLARE
+    CURSOR emp_cursor(dolny int, gorny int, czesc VARCHAR) IS
+    SELECT salary,first_name, last_name
+    FROM employees
+    WHERE LOWER(first_name) LIKE (LOWER(czesc)) AND salary BETWEEN dolny AND gorny;
+
+BEGIN
+    FOR n IN emp_cursor(1000,5000,'%a%')  -- b: (5000,20000,'%u%')
+    LOOP
+        dbms_output.put_line(n.salary ||' '|| n.first_name ||' '|| n.last_name);
+    END LOOP;
+END;
+
+-- b
+DECLARE
+    CURSOR emp_cursor(dolny int, gorny int, czesc VARCHAR) IS
+    SELECT salary,first_name, last_name
+    FROM employees
+    WHERE LOWER(first_name) LIKE (LOWER(czesc)) AND salary BETWEEN dolny AND gorny;
+
+BEGIN
+    FOR n IN emp_cursor(5000,20000,'%u%')
+    LOOP
+        dbms_output.put_line(n.salary ||' '|| n.first_name ||' '|| n.last_name);
+    END LOOP;
+END;
+
+-- 9
+-- a
+CREATE OR REPLACE PROCEDURE add_jobs(jobid IN VARCHAR2,jobname IN VARCHAR2) IS
+BEGIN
+    INSERT INTO jobs(job_id, job_title) VALUES(jobid,jobname);
+EXCEPTION
+    WHEN OTHERS THEN
+    dbms_output.put_line('Exception thrown');
+END;
+
+-- b
+CREATE OR REPLACE PROCEDURE change_jobs (
+    jobid   STRING,
+    jobtitle STRING
+) AS
+    not_updated EXCEPTION;
+BEGIN
+    UPDATE jobs
+    SET
+        job_title = jobtitle
+    WHERE
+        job_id = jobid;
+    IF( SQL%rowcount = 0 ) THEN
+        RAISE not_updated;
+    END IF;
+EXCEPTION
+    WHEN not_updated THEN
+        dbms_output.put_line('Update failed');
+    WHEN OTHERS THEN
+        dbms_output.put_line('Exception thrown');
+		
+-- c
+CREATE OR REPLACE PROCEDURE remove_jobs (
+    jobid STRING
+) AS
+    not_deleted EXCEPTION;
+BEGIN
+    DELETE FROM jobs
+    WHERE
+        job_id = jobid;
+
+    IF ( SQL%rowcount = 0 ) THEN
+        RAISE not_deleted;
+    END IF;
+EXCEPTION
+    WHEN not_deleted THEN
+        dbms_output.put_line('Delete failed');
+    WHEN OTHERS THEN
+        dbms_output.put_line('Exception thrown');
+END;
+
+-- d
+CREATE OR REPLACE PROCEDURE earnings_info (
+    employeeid VARCHAR2
+) IS
+    nazwisko employees.last_name%TYPE;
+    zarobki employees.salary%TYPE;
+BEGIN
+    SELECT employees.last_name, employees.salary INTO nazwisko, zarobki FROM employees WHERE(employees.employee_id = employeeid);
+    dbms_output.put_line(nazwisko || ' ' || zarobki);
+END;
+
+-- e
+CREATE OR REPLACE PROCEDURE INSERT_earnings(
+zarobki IN NUMBER,
+imie IN VARCHAR2 DEFAULT NULL,
+nazwisko IN VARCHAR2 DEFAULT 'Kowalski',
+email IN VARCHAR2 DEFAULT 'email@email.nl',
+telefon IN VARCHAR2 DEFAULT NULL,
+prowizja IN NUMBER DEFAULT NULL,
+managerID NUMBER DEFAULT NULL,
+zatrudniony DATE DEFAULT CURRENT_DATE,
+jobid VARCHAR2 DEFAULT 'HR_REP',
+depart NUMBER DEFAULT 40)
+IS
+too_much EXCEPTION;
+idemp employees.employee_id%TYPE;
+BEGIN
+IF (zarobki > 20000) THEN
+    RAISE too_much;
+END IF;
+SELECT MAX(employees.employee_id) INTO idemp FROM employees;
+idemp:=idemp+1;
+INSERT INTO employees(employee_id, salary, first_name, last_name, email, phone_number, commISsion_pct,manager_id, hire_date, job_id, department_id)
+VALUES(idemp, zarobki, imie, nazwisko, email, telefon, prowizja, managerID, zatrudniony, jobid, depart);
+EXCEPTION
+    WHEN too_much THEN
+        dbms_output.put_line('Payment over 20k');
+    WHEN OTHERS THEN
+        dbms_output.put_line('Exception thrown');
+END;
